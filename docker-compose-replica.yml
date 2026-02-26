@@ -1,0 +1,71 @@
+version: "3.8"
+
+services:
+  mongodb1:
+    container_name: mongodb1
+    image: mongo:6.0
+    restart: always
+    command: ["--replSet", "rs0", "--keyFile", "/etc/mongo-keyfile", "--bind_ip_all"]
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: a1B2c3D4e5
+    volumes:
+      - ./mongodb.key:/etc/mongo-keyfile:ro
+    ports:
+      - "27030:27017"
+    networks:
+      mongodb_custom_network:
+        ipv4_address: 172.70.0.2
+
+  mongodb2:
+    container_name: mongodb2
+    image: mongo:6.0
+    restart: always
+    command: ["--replSet", "rs0", "--keyFile", "/etc/mongo-keyfile", "--bind_ip_all"]
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: a1B2c3D4e5
+    volumes:
+      - ./mongodb.key:/etc/mongo-keyfile:ro
+    ports:
+      - "27031:27017"
+    networks:
+      mongodb_custom_network:
+        ipv4_address: 172.70.0.3
+
+  mongodb3:
+    container_name: mongodb3
+    image: mongo:6.0
+    restart: always
+    command: ["--replSet", "rs0", "--keyFile", "/etc/mongo-keyfile", "--bind_ip_all"]
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: a1B2c3D4e5
+    volumes:
+      - ./mongodb.key:/etc/mongo-keyfile:ro
+    ports:
+      - "27032:27017"      
+    networks:
+      mongodb_custom_network:
+        ipv4_address: 172.70.0.4
+
+  python_importer:
+    container_name: python_importer
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ./csv:/csv
+    networks:
+      mongodb_custom_network:
+        ipv4_address: 172.70.0.6
+    depends_on:
+      - mongodb1
+    command: ["tail", "-f", "/dev/null"]
+
+networks:
+  mongodb_custom_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.70.0.0/24

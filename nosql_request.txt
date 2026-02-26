@@ -1,0 +1,157 @@
+
+Combien d’annonces y a-t-il par type de location ?
+
+db.listing_paris.aggregate([
+  {
+    $group: {
+      _id: "$room_type",
+      count: { $sum: 1 }
+    }
+  }
+]);
+
+
+
+Quelles sont les 5 annonces de location avec le plus d’évaluations ? Et combien d’évaluations ont-elles ?
+
+db.listing_paris.aggregate([
+  {
+    $sort: { number_of_reviews: -1 }
+  },
+  {
+    $limit: 5
+  },
+  {
+    $project: {
+      name: 1,
+      number_of_reviews: 1
+    }
+  }
+]);
+
+
+Quel est le nombre total d’hôtes différents ?
+
+db.listing_paris.aggregate([
+  {
+    $group: {
+      _id: "$host_id"
+    }
+  },
+  {
+    $count: "unique_hosts"
+  }
+]);
+
+
+Quel est le nombre de locations réservables instantanément ? Cela représente quelle proportion des annonces ? 
+
+db.listing_paris.aggregate([
+  {
+    $facet: {
+      total: [{ $count: "total_count" }],
+      instant_bookable: [
+        { $match: { instant_bookable: "t" } },
+        { $count: "instant_bookable_count" }
+      ]
+    }
+  },
+  {
+    $project: {
+      total_count: { $arrayElemAt: ["$total.total_count", 0] },
+      instant_bookable_count: { $arrayElemAt: ["$instant_bookable.instant_bookable_count", 0] }
+    }
+  },
+  {
+    $project: {
+      instant_bookable_count: { $ifNull: ["$instant_bookable_count", 0] },
+      total_count: 1,
+      proportion: {
+        $cond: {
+          if: { $eq: ["$total_count", 0] },
+          then: 0,
+          else: { $divide: ["$instant_bookable_count", "$total_count"] }
+        }
+      }
+    }
+  }
+]);
+
+Est-ce que des hôtes ont plus de 100 annonces sur les plateformes ? Et si oui qui sont-ils ? Cela représente quel pourcentage des hôtes ?
+
+db.listing_paris.aggregate([
+  {
+    $group: {
+      _id: "$host_id",
+      total_annonces: { $sum: 1 }
+    }
+  },
+  {
+    $facet: {
+      total_hosts: [{ $count: "total_count" }],
+      hosts_with_more_than_100: [
+        { $match: { total_annonces: { $gt: 100 } } },
+        { $project: { _id: 1, total_annonces: 1 } }
+      ]
+    }
+  },
+  {
+    $project: {
+      total_count: { $arrayElemAt: ["$total_hosts.total_count", 0] },
+      count_100_plus: { $size: "$hosts_with_more_than_100" },
+      hosts_with_more_than_100: 1,
+      proportion: {
+        $cond: [
+          { $eq: [ { $arrayElemAt: ["$total_hosts.total_count", 0] }, 0 ] },
+          0,
+          { $divide: [ { $size: "$hosts_with_more_than_100" }, { $arrayElemAt: ["$total_hosts.total_count", 0] } ] }
+        ]
+      }
+    }
+  }
+]);
+
+
+Combien y a-t-il de super hôtes différents ? Cela représente quel pourcentage des hôtes ?
+
+db.listing_paris.aggregate([
+  {
+    $group: {
+      _id: "$host_id",
+      superhost_flags: { $addToSet: "$host_is_superhost" }
+    }
+  },
+  {
+    $project: {
+      is_superhost: { $in: ["t", "$superhost_flags"] }
+    }
+  },
+  {
+    $facet: {
+      total_hosts: [{ $count: "total_count" }],
+      super_hosts: [
+        { $match: { is_superhost: true } },
+        { $count: "count_superhosts" }
+      ]
+    }
+  },
+  {
+    $project: {
+      count_superhosts: { $ifNull: [{ $arrayElemAt: ["$super_hosts.count_superhosts", 0] }, 0] },
+      total_count: { $ifNull: [{ $arrayElemAt: ["$total_hosts.total_count", 0] }, 0] },
+      proportion: {
+        $cond: [
+          { $eq: [{ $arrayElemAt: ["$total_hosts.total_count", 0] }, 0] },
+          0,
+          {
+            $divide: [
+              { $arrayElemAt: ["$super_hosts.count_superhosts", 0] },
+              { $arrayElemAt: ["$total_hosts.total_count", 0] }
+            ]
+          }
+        ]
+      }
+    }
+  }
+]);
+

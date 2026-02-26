@@ -1,0 +1,2 @@
+Python 3.9.21
+Docker Compose version v2.27.1

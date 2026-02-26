@@ -1,0 +1,112 @@
+version: "3.8"
+
+services:
+  # Shard 1 replica set
+  shard1a:
+    container_name: shard1a
+    image: mongo:6.0
+    command: ["--replSet", "shard1", "--shardsvr", "--keyFile", "/etc/mongo-keyfile", "--bind_ip_all"]
+    ports:
+      - "27100:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: a1B2c3D4e5
+    volumes:
+      - ./mongodb.key:/etc/mongo-keyfile:ro
+    networks:
+      mongodb_shards_custom_network:
+        ipv4_address: 172.60.0.2
+
+  shard1b:
+    container_name: shard1b
+    image: mongo:6.0
+    command: ["--replSet", "shard1", "--shardsvr", "--keyFile", "/etc/mongo-keyfile", "--bind_ip_all"]
+    ports:
+      - "27101:27017"    
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: a1B2c3D4e5
+    volumes:
+      - ./mongodb.key:/etc/mongo-keyfile:ro
+    networks:
+      mongodb_shards_custom_network:
+        ipv4_address: 172.60.0.3
+
+  shard1c:
+    container_name: shard1c
+    image: mongo:6.0
+    command: ["--replSet", "shard1", "--shardsvr", "--keyFile", "/etc/mongo-keyfile", "--bind_ip_all"]
+    ports:
+      - "27102:27017"    
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: a1B2c3D4e5
+    volumes:
+      - ./mongodb.key:/etc/mongo-keyfile:ro
+    networks:
+      mongodb_shards_custom_network:
+        ipv4_address: 172.60.0.4
+
+  # Config replica set
+  configsvr1:
+    container_name: configsvr1
+    image: mongo:6.0
+    command: ["--replSet", "configReplSet", "--configsvr", "--keyFile", "/etc/mongo-keyfile", "--bind_ip_all"]
+    ports:
+      - "27200:27017"    
+    volumes:
+      - ./mongodb.key:/etc/mongo-keyfile:ro
+    networks:
+      mongodb_shards_custom_network:
+        ipv4_address: 172.60.0.10
+
+  configsvr2:
+    container_name: configsvr2
+    image: mongo:6.0
+    command: ["--replSet", "configReplSet", "--configsvr", "--keyFile", "/etc/mongo-keyfile", "--bind_ip_all"]
+    ports:
+      - "27201:27017"    
+    volumes:
+      - ./mongodb.key:/etc/mongo-keyfile:ro
+    networks:
+      mongodb_shards_custom_network:
+        ipv4_address: 172.60.0.11
+
+  configsvr3:
+    container_name: configsvr3
+    image: mongo:6.0
+    command: ["--replSet", "configReplSet", "--configsvr", "--keyFile", "/etc/mongo-keyfile", "--bind_ip_all"]
+    ports:
+      - "27202:27017"    
+    volumes:
+      - ./mongodb.key:/etc/mongo-keyfile:ro
+    networks:
+      mongodb_shards_custom_network:
+        ipv4_address: 172.60.0.12
+
+  mongos:
+    container_name: mongos
+    image: mongo:6.0
+    command: [
+      "mongos",
+      "--configdb", "configReplSet/configsvr1:27017,configsvr2:27017,configsvr3:27017",
+      "--keyFile", "/etc/mongo-keyfile",
+      "--bind_ip_all"
+    ]
+    ports:
+      - "27010:27017"
+    volumes:
+      - ./mongodb.key:/etc/mongo-keyfile:ro
+    depends_on:
+      - configsvr1
+      - shard1a
+    networks:
+      mongodb_shards_custom_network:
+        ipv4_address: 172.60.0.20
+
+networks:
+  mongodb_shards_custom_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.60.0.0/24

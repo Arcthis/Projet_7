@@ -1,0 +1,21 @@
+version: "3.8"
+services:
+  db:
+    container_name: mongodb_container_paris
+    image: mongo
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: a1B2c3D4e5
+    ports:
+      - "27029:27017"
+    networks:
+      mongodb_network_paris:
+        ipv4_address: 172.71.0.8
+
+networks:
+  mongodb_network_paris:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.71.0.0/24
